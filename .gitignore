@@ -1,8 +1,45 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 *.pyo
-instance/
-*.db
-.env
+*.pyd
+*.so
+
+# Virtual environments
 venv/
 .venv/
+env/
+.env/
+ENV/
+
+# Database
+instance/
+*.db
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
