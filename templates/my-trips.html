@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}My Trips — Apex Voyage{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/booking.css') }}">{% endblock %}
+
+{% block content %}
+<div class="page-wrap" style="background:var(--navy);min-height:100vh">
+  <!-- Header -->
+  <div style="background:var(--navy);padding:3rem 1.5rem 2rem;text-align:center">
+    <h1 style="color:white;font-size:clamp(1.5rem,4vw,2.25rem);font-weight:700;margin-bottom:0.375rem">My Trips</h1>
+    <p style="color:rgba(255,255,255,0.55);font-size:1rem">Retrieve your booking using PNR and last name</p>
+  </div>
+
+  <div style="padding:0 1.5rem 5rem">
+    <!-- Lookup form -->
+    <div class="lookup-card">
+      <h2>Retrieve Booking</h2>
+      <p>Enter your 6-character PNR (e.g. AV1234) and last name to view your trip details.</p>
+      <form method="POST" action="{{ url_for('my_trips') }}" novalidate>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="form-label" for="pnr">PNR / Booking Reference</label>
+          <input type="text" class="form-input" id="pnr" name="pnr"
+                 placeholder="e.g. AV1234" required maxlength="10"
+                 style="text-transform:uppercase;letter-spacing:2px"
+                 aria-label="Booking PNR" autocomplete="off">
+        </div>
+        <div class="form-group" style="margin-bottom:1.5rem">
+          <label class="form-label" for="last_name">Last Name</label>
+          <input type="text" class="form-input" id="last_name" name="last_name"
+                 placeholder="As on booking" required
+                 aria-label="Last name on booking" autocomplete="family-name">
+        </div>
+        <button type="submit" class="lookup-btn" aria-label="Find booking">Find My Trip</button>
+      </form>
+
+      {% if error %}
+      <div class="lookup-error" role="alert">⚠ {{ error }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Trip result -->
+    {% if booking %}
+    <div class="trip-card" role="region" aria-label="Booking details">
+      <div class="trip-card__head">
+        <div>
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.25rem">PNR</div>
+          <div class="tc-pnr" aria-label="PNR {{ booking.pnr }}">{{ booking.pnr }}</div>
+        </div>
+        <div class="tc-status">
+          {% if booking.check_in_status == 'confirmed' %}
+            <span class="badge-green">✓ Confirmed</span>
+          {% elif booking.check_in_status == 'checked_in' %}
+            <span class="badge-gold">✈ Checked In</span>
+          {% else %}
+            <span class="badge-red">✗ Cancelled</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="trip-card__body">
+        <div class="tc-route">
+          <div>
+            <div class="tc-t">{{ booking.flight.departure_time }}</div>
+            <div class="tc-c">{{ booking.flight.origin_code }} · {{ booking.flight.origin_city }}</div>
+          </div>
+          <div class="tc-mid">
+            <div class="tc-dur">{{ booking.flight.duration() }}</div>
+            <div class="tc-line"></div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Non-stop · {{ booking.flight.flight_number }}</div>
+          </div>
+          <div>
+            <div class="tc-t">{{ booking.flight.arrival_time }}</div>
+            <div class="tc-c">{{ booking.flight.destination_code }} · {{ booking.flight.destination_city }}</div>
+          </div>
+        </div>
+
+        <div class="tc-grid">
+          <div class="tc-field">
+            <label>Passenger</label>
+            <span>{{ booking.passenger_name }}</span>
+          </div>
+          <div class="tc-field">
+            <label>Date</label>
+            <span>{{ booking.flight.date.strftime('%d %b %Y') }}</span>
+          </div>
+          <div class="tc-field">
+            <label>Class</label>
+            <span>{{ booking.seat_class }}</span>
+          </div>
+          <div class="tc-field">
+            <label>Seat</label>
+            <span style="color:var(--gold);font-weight:700;font-size:1.1rem">{{ booking.seat_number or 'TBA' }}</span>
+          </div>
+          <div class="tc-field">
+            <label>Aircraft</label>
+            <span>{{ booking.flight.aircraft_type }}</span>
+          </div>
+          <div class="tc-field">
+            <label>Amount Paid</label>
+            <span>₹{{ booking.price_paid|int }}</span>
+          </div>
+        </div>
+
+        <div class="tc-actions">
+          {% if booking.check_in_status == 'confirmed' %}
+          <a href="{{ url_for('check_in') }}" class="lookup-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem;width:auto;padding:0.625rem 1.5rem">
+            ✈ Check In Online
+          </a>
+          <button class="tc-cancel" id="cancel-btn"
+                  aria-label="Cancel this booking" aria-haspopup="dialog">
+            ✗ Cancel Booking
+          </button>
+          {% elif booking.check_in_status == 'checked_in' %}
+          <a href="{{ url_for('check_in') }}" class="lookup-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem;width:auto;padding:0.625rem 1.5rem">
+            🎫 View Boarding Pass
+          </a>
+          {% else %}
+          <p style="color:#ef4444;font-size:0.875rem">This booking has been cancelled.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Cancel confirmation modal -->
+    {% if booking.check_in_status == 'confirmed' %}
+    <div class="modal-overlay" id="cancel-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-box">
+        <h3 id="modal-title">Cancel Booking?</h3>
+        <p>This will cancel your booking for flight <strong>{{ booking.flight.flight_number }}</strong> on {{ booking.flight.date.strftime('%d %b %Y') }}. This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="modal-cancel-btn" id="modal-close" aria-label="Keep booking">Keep Booking</button>
+          <form method="POST" action="{{ url_for('cancel_booking', pnr=booking.pnr) }}" style="flex:1">
+            <button type="submit" class="modal-confirm-btn" style="width:100%" aria-label="Confirm cancellation">
+              Yes, Cancel
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.getElementById('cancel-btn')?.addEventListener('click', () => {
+        document.getElementById('cancel-modal').classList.add('open');
+      });
+      document.getElementById('modal-close')?.addEventListener('click', () => {
+        document.getElementById('cancel-modal').classList.remove('open');
+      });
+      document.getElementById('cancel-modal')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('cancel-modal'))
+          document.getElementById('cancel-modal').classList.remove('open');
+      });
+    </script>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

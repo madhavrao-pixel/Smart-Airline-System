@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% block title %}Admin — Apex Voyage{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+{% if not logged_in %}
+<!-- ── Login gate ─────────────────────────────────────── -->
+<div class="admin-login-wrap">
+  <div class="admin-login-card" role="main">
+    <div class="logo-wrap">
+      <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage">
+      <h2>Admin Portal</h2>
+      <p>Sign in to manage Apex Voyage operations</p>
+    </div>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:0.75rem 1rem;color:#b91c1c;font-size:0.875rem;margin-bottom:1rem">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST" action="{{ url_for('admin') }}">
+      <input type="hidden" name="action" value="login">
+      <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.375rem" for="admin-pw">Password</label>
+      <input type="password" class="admin-input" id="admin-pw" name="password"
+             placeholder="Enter admin password" required autocomplete="current-password"
+             aria-label="Admin password">
+      <button type="submit" class="admin-submit" aria-label="Sign in">Sign In</button>
+    </form>
+    <div class="admin-hint">
+      🔑 Demo password: <code>apexadmin2026</code>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ── Dashboard ─────────────────────────────────────── -->
+<div class="admin-page">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" role="navigation" aria-label="Admin navigation">
+      <div class="sidebar-logo">
+        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage">
+      </div>
+      <ul class="sidebar-nav" role="list">
+        <li role="listitem">
+          <a class="sidebar-link active" data-section="overview" href="#">
+            <span class="sidebar-icon">📊</span> Overview
+          </a>
+        </li>
+        <li role="listitem">
+          <a class="sidebar-link" data-section="flights-section" href="#">
+            <span class="sidebar-icon">✈</span> Flights
+          </a>
+        </li>
+        <li role="listitem">
+          <a class="sidebar-link" data-section="bookings-section" href="#">
+            <span class="sidebar-icon">🎫</span> Bookings
+          </a>
+        </li>
+        <div class="sidebar-divider"></div>
+        <li role="listitem">
+          <a class="sidebar-link" href="{{ url_for('index') }}">
+            <span class="sidebar-icon">🌐</span> View Site
+          </a>
+        </li>
+      </ul>
+      <div class="sidebar-logout">
+        <form method="POST" action="{{ url_for('admin') }}">
+          <input type="hidden" name="action" value="logout">
+          <button type="submit" class="logout-btn" aria-label="Sign out">
+            <span class="sidebar-icon">🚪</span> Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main" id="overview" role="main">
+      <div class="admin-topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Apex Voyage Operations Center · {{ today }}</p>
+        </div>
+        <div class="admin-date">{{ today }}</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" role="list" aria-label="Today's statistics">
+        <div class="stat-card stat-card--gold" role="listitem">
+          <div class="stat-icon si-gold" aria-hidden="true">✈</div>
+          <div class="stat-val" aria-label="{{ flights_today }} flights today">{{ flights_today }}</div>
+          <div class="stat-lbl">Flights Today</div>
+        </div>
+        <div class="stat-card stat-card--green" role="listitem">
+          <div class="stat-icon si-green" aria-hidden="true">🎫</div>
+          <div class="stat-val" aria-label="{{ bookings_today }} bookings today">{{ bookings_today }}</div>
+          <div class="stat-lbl">Bookings Today</div>
+        </div>
+        <div class="stat-card stat-card--saffron" role="listitem">
+          <div class="stat-icon si-saffron" aria-hidden="true">₹</div>
+          <div class="stat-val" aria-label="₹{{ revenue_today|int }} revenue today">₹{{ revenue_today|int }}</div>
+          <div class="stat-lbl">Revenue Today</div>
+        </div>
+        <div class="stat-card stat-card--blue" role="listitem">
+          <div class="stat-icon si-blue" aria-hidden="true">📈</div>
+          <div class="stat-val" aria-label="{{ (eco + biz + first) }} total bookings">{{ eco + biz + first }}</div>
+          <div class="stat-lbl">Total Bookings</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Weekly Bookings (Last 7 Days)</div>
+          <div class="chart-wrap"><canvas id="weekly-chart" aria-label="Weekly bookings bar chart" role="img"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Class Distribution</div>
+          <div class="chart-wrap"><canvas id="pie-chart" aria-label="Class distribution pie chart" role="img"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Flights table -->
+      <div class="admin-section" id="flights-section">
+        <div class="admin-section-header">
+          <h3>Flights</h3>
+          <button class="admin-add-btn" id="add-flight-btn" aria-label="Add new flight" aria-haspopup="dialog">
+            + Add Flight
+          </button>
+        </div>
+        <div class="table-card">
+          <div class="table-search">
+            <input type="text" placeholder="Search flights…" aria-label="Search flights table">
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table" role="table" aria-label="Flights table">
+              <thead>
+                <tr>
+                  <th scope="col">Flight</th>
+                  <th scope="col">Route</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Schedule</th>
+                  <th scope="col">Aircraft</th>
+                  <th scope="col">Economy</th>
+                  <th scope="col">Business</th>
+                  <th scope="col">First</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for f in flights %}
+                <tr>
+                  <td><div class="tbl-flight-num">{{ f.flight_number }}</div></td>
+                  <td>
+                    <div>{{ f.origin_code }} → {{ f.destination_code }}</div>
+                    <div class="tbl-route">{{ f.origin_city }} → {{ f.destination_city }}</div>
+                  </td>
+                  <td>{{ f.date.strftime('%d %b %Y') }}</td>
+                  <td>{{ f.departure_time }} → {{ f.arrival_time }}<br><span class="tbl-route">{{ f.duration() }}</span></td>
+                  <td>{{ f.aircraft_type }}</td>
+                  <td>{{ f.economy_seats }} / ₹{{ f.economy_price|int }}</td>
+                  <td>{{ f.business_seats }} / ₹{{ f.business_price|int }}</td>
+                  <td>{{ f.first_seats }} / ₹{{ f.first_price|int }}</td>
+                  <td>
+                    {% if f.status == 'Scheduled' %}
+                      <span class="badge-green">{{ f.status }}</span>
+                    {% else %}
+                      <span class="badge-red">{{ f.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if f.status == 'Scheduled' %}
+                    <form method="POST" action="{{ url_for('admin') }}"
+                          onsubmit="return confirm('Cancel flight {{ f.flight_number }}?')">
+                      <input type="hidden" name="action" value="cancel_flight">
+                      <input type="hidden" name="flight_id" value="{{ f.id }}">
+                      <button type="submit" class="tbl-cancel-btn" aria-label="Cancel flight {{ f.flight_number }}">Cancel</button>
+                    </form>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookings table -->
+      <div class="admin-section" id="bookings-section">
+        <div class="admin-section-header">
+          <h3>Recent Bookings</h3>
+        </div>
+        <div class="table-card">
+          <div class="table-search">
+            <input type="text" placeholder="Search bookings…" aria-label="Search bookings table">
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table" role="table" aria-label="Bookings table">
+              <thead>
+                <tr>
+                  <th scope="col">PNR</th>
+                  <th scope="col">Passenger</th>
+                  <th scope="col">Flight</th>
+                  <th scope="col">Route</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Class</th>
+                  <th scope="col">Seat</th>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in bookings %}
+                <tr>
+                  <td><span style="font-family:'Courier New',monospace;font-weight:700;color:var(--gold)">{{ b.pnr }}</span></td>
+                  <td>
+                    <div style="font-weight:600;color:var(--navy)">{{ b.passenger_name }}</div>
+                    <div class="tbl-route">{{ b.passenger_email }}</div>
+                  </td>
+                  <td>{{ b.flight.flight_number }}</td>
+                  <td>{{ b.flight.origin_code }} → {{ b.flight.destination_code }}</td>
+                  <td>{{ b.flight.date.strftime('%d %b %Y') }}</td>
+                  <td>{{ b.seat_class }}</td>
+                  <td><strong style="color:var(--gold)">{{ b.seat_number or '—' }}</strong></td>
+                  <td>₹{{ b.price_paid|int }}</td>
+                  <td>
+                    {% if b.check_in_status == 'confirmed' %}
+                      <span class="badge-green">Confirmed</span>
+                    {% elif b.check_in_status == 'checked_in' %}
+                      <span class="badge-gold">Checked In</span>
+                    {% else %}
+                      <span class="badge-red">Cancelled</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Add flight modal -->
+<div class="add-flight-modal" id="add-flight-modal" role="dialog" aria-modal="true" aria-labelledby="modal-h">
+  <div class="add-flight-box">
+    <h3 id="modal-h">Add New Flight</h3>
+    <form method="POST" action="{{ url_for('admin') }}">
+      <input type="hidden" name="action" value="add_flight">
+      <div class="af-grid">
+        <div>
+          <label class="af-label" for="af-fn">Flight Number</label>
+          <input type="text" class="af-input" id="af-fn" name="flight_number" placeholder="AV501" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-ac">Aircraft</label>
+          <select class="af-select" id="af-ac" name="aircraft_type">
+            <option>Airbus A320neo</option>
+            <option>Airbus A380</option>
+            <option>Boeing 787 Dreamliner</option>
+            <option>Boeing 777X</option>
+          </select>
+        </div>
+        <div>
+          <label class="af-label" for="af-orig">Origin Code</label>
+          <input type="text" class="af-input" id="af-orig" name="origin_code" placeholder="BOM" maxlength="3" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-dest">Destination Code</label>
+          <input type="text" class="af-input" id="af-dest" name="destination_code" placeholder="SIN" maxlength="3" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-date">Date</label>
+          <input type="date" class="af-input" id="af-date" name="date" min="{{ today }}" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-dep">Departure Time</label>
+          <input type="time" class="af-input" id="af-dep" name="departure_time" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-arr">Arrival Time</label>
+          <input type="time" class="af-input" id="af-arr" name="arrival_time" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-ep">Economy Price (₹)</label>
+          <input type="number" class="af-input" id="af-ep" name="economy_price" placeholder="5000" min="1" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-bp">Business Price (₹)</label>
+          <input type="number" class="af-input" id="af-bp" name="business_price" placeholder="30000" min="1" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-fp">First Price (₹)</label>
+          <input type="number" class="af-input" id="af-fp" name="first_price" placeholder="100000" min="1" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-es">Economy Seats</label>
+          <input type="number" class="af-input" id="af-es" name="economy_seats" value="180" min="1" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-bs">Business Seats</label>
+          <input type="number" class="af-input" id="af-bs" name="business_seats" value="36" min="1" required>
+        </div>
+        <div>
+          <label class="af-label" for="af-fs">First Seats</label>
+          <input type="number" class="af-input" id="af-fs" name="first_seats" value="12" min="1" required>
+        </div>
+      </div>
+      <div class="af-actions">
+        <button type="button" class="af-close" id="close-flight-modal" aria-label="Close modal">Cancel</button>
+        <button type="submit" class="af-submit" aria-label="Add flight">Add Flight</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if logged_in %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const WEEKLY_DATA = {{ weekly | tojson }};
+const ECO_COUNT   = {{ eco }};
+const BIZ_COUNT   = {{ biz }};
+const FIRST_COUNT = {{ first }};
+</script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endif %}
+{% endblock %}

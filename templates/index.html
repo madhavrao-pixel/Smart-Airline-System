@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% block title %}Apex Voyage — Where India Meets Asia{% endblock %}
+
+{% block content %}
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="hero" aria-label="Flight search hero">
+  <div class="hero__stars" aria-hidden="true"></div>
+  <div class="hero__cityscape" aria-hidden="true"></div>
+  <div class="hero__plane" aria-hidden="true">✈</div>
+
+  <div class="hero__content">
+    <div class="hero__logo-wrap">
+      <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage" class="hero__logo">
+    </div>
+    <p class="hero__tagline">Where India Meets Asia</p>
+
+    <!-- Search widget -->
+    <div class="search-widget" role="search" aria-label="Flight search">
+      <div class="search-tabs" role="tablist">
+        <button class="s-tab active" role="tab" aria-selected="true">One Way</button>
+        <button class="s-tab" role="tab" aria-selected="false">Round Trip</button>
+        <button class="s-tab" role="tab" aria-selected="false">Multi-City</button>
+      </div>
+
+      <form action="{{ url_for('search') }}" method="GET" id="searchForm">
+        <div class="search-form-grid">
+
+          <!-- From -->
+          <div class="sf-wrap">
+            <label class="sf-label" for="origin">From</label>
+            <input type="text" id="origin" name="origin" class="sf-input"
+                   placeholder="City or code" required autocomplete="off"
+                   data-autocomplete="airport" aria-label="Departure city"
+                   aria-autocomplete="list" aria-controls="origin-ac">
+            <div class="autocomplete-box" id="origin-ac" role="listbox"></div>
+            <span class="sf-icon" aria-hidden="true">✈</span>
+          </div>
+
+          <!-- To -->
+          <div class="sf-wrap">
+            <label class="sf-label" for="destination">To</label>
+            <input type="text" id="destination" name="destination" class="sf-input"
+                   placeholder="City or code" required autocomplete="off"
+                   data-autocomplete="airport" aria-label="Arrival city"
+                   aria-autocomplete="list" aria-controls="destination-ac">
+            <div class="autocomplete-box" id="destination-ac" role="listbox"></div>
+            <span class="sf-icon" aria-hidden="true">🎯</span>
+          </div>
+
+          <!-- Date -->
+          <div class="sf-wrap">
+            <label class="sf-label" for="search-date">Departure</label>
+            <input type="date" id="search-date" name="date" class="sf-input"
+                   required aria-label="Departure date">
+          </div>
+
+          <!-- Passengers -->
+          <div class="sf-wrap pax-wrap">
+            <label class="sf-label">Passengers</label>
+            <div class="pax-display" role="button" aria-haspopup="true" aria-label="Select passengers" tabindex="0">
+              <span class="pax-display-text">1 Adult</span>
+              <span class="pax-chevron">▾</span>
+            </div>
+            <input type="hidden" name="passengers" id="pax-hidden" value="1">
+            <div class="pax-popup" role="dialog" aria-label="Passenger count">
+              <div class="pax-row">
+                <div class="pax-info">Adults <span>12+ years</span></div>
+                <div class="pax-ctrl">
+                  <button type="button" class="pax-btn" data-type="adults" data-dir="-" aria-label="Remove adult">−</button>
+                  <span class="pax-n" data-count="adults">1</span>
+                  <button type="button" class="pax-btn" data-type="adults" data-dir="+" aria-label="Add adult">+</button>
+                </div>
+              </div>
+              <div class="pax-row">
+                <div class="pax-info">Children <span>2–11 years</span></div>
+                <div class="pax-ctrl">
+                  <button type="button" class="pax-btn" data-type="children" data-dir="-" aria-label="Remove child">−</button>
+                  <span class="pax-n" data-count="children">0</span>
+                  <button type="button" class="pax-btn" data-type="children" data-dir="+" aria-label="Add child">+</button>
+                </div>
+              </div>
+              <div class="pax-row">
+                <div class="pax-info">Infants <span>Under 2</span></div>
+                <div class="pax-ctrl">
+                  <button type="button" class="pax-btn" data-type="infants" data-dir="-" aria-label="Remove infant">−</button>
+                  <span class="pax-n" data-count="infants">0</span>
+                  <button type="button" class="pax-btn" data-type="infants" data-dir="+" aria-label="Add infant">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Class -->
+          <div class="sf-wrap">
+            <label class="sf-label" for="class-sel">Class</label>
+            <select id="class-sel" name="class" class="sf-input class-select" aria-label="Travel class">
+              <option value="Economy">Economy</option>
+              <option value="Business">Business</option>
+              <option value="First">First Class</option>
+            </select>
+          </div>
+
+          <!-- Search button -->
+          <button type="submit" class="search-cta" aria-label="Search available flights">
+            Search Flights
+          </button>
+        </div>
+      </form>
+
+      <!-- Track flight -->
+      <div class="track-section" aria-label="Track a flight">
+        <p class="track-title">📡 Real-Time Flight Tracker</p>
+        <div class="track-row">
+          <input type="text" id="track-input" class="track-input"
+                 placeholder="Enter flight number  e.g. AV101"
+                 aria-label="Flight number to track">
+          <button id="track-btn" class="track-btn" aria-label="Track flight">Track</button>
+        </div>
+        <div class="track-result" id="track-result" role="status" aria-live="polite">
+          <span class="t-badge"></span>
+          <div class="t-progress-wrap">
+            <div class="t-label">Status</div>
+            <div class="flight-status-bar t-progress-bar">
+              <div class="t-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /search-widget -->
+  </div>
+</section>
+
+
+<!-- ══ WHY APEX VOYAGE ═══════════════════════════════════ -->
+<section class="sec sec--dark" aria-label="Why choose Apex Voyage">
+  <div class="container">
+    <div class="sec-head">
+      <div class="gold-bar"></div>
+      <h2 class="sec-title">Why Apex Voyage</h2>
+      <p class="sec-sub">Premium features built for the modern Indian traveller</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card" role="article">
+        <div class="feat-icon" aria-hidden="true">🤖</div>
+        <h3>AI Seat Recommender</h3>
+        <p>Our algorithm analyses 50+ factors to suggest the perfect seat — legroom, view, satisfaction score — tailored to you.</p>
+      </div>
+      <div class="feat-card" role="article">
+        <div class="feat-icon" aria-hidden="true">📡</div>
+        <h3>Real-Time Flight Tracker</h3>
+        <p>Live status updates for every Apex Voyage flight. Know exactly when to head to the gate — no surprises.</p>
+      </div>
+      <div class="feat-card" role="article">
+        <div class="feat-icon" aria-hidden="true">❌</div>
+        <h3>Zero-Fee Cancellation</h3>
+        <p>Change of plans? Cancel any booking, any time. Full flexibility with instant seat release — no hidden charges.</p>
+      </div>
+      <div class="feat-card" role="article">
+        <div class="feat-icon" aria-hidden="true">⭐</div>
+        <h3>Apex Miles Rewards</h3>
+        <p>Earn 1 Apex Mile for every ₹10 spent. Redeem for free flights, upgrades, and exclusive lounge access across Asia.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ DESTINATIONS CAROUSEL ═════════════════════════════ -->
+<section class="sec sec--white" aria-label="Popular destinations">
+  <div class="container">
+    <div class="sec-head">
+      <div class="gold-bar"></div>
+      <h2 class="sec-title">Where Will You Go?</h2>
+      <p class="sec-sub">Top Asian destinations — discover from India</p>
+    </div>
+    <div class="dest-track" role="list" aria-label="Destination cards">
+      {% set destinations = [
+        ('Dubai', 'UAE', '🇦🇪', 'dest-bg-dubai', 'BOM', '₹8,500'),
+        ('Singapore', 'Singapore', '🇸🇬', 'dest-bg-singapore', 'DEL', '₹10,000'),
+        ('Bangkok', 'Thailand', '🇹🇭', 'dest-bg-bangkok', 'BOM', '₹9,000'),
+        ('Tokyo', 'Japan', '🇯🇵', 'dest-bg-tokyo', 'BOM', '₹13,000'),
+        ('Hong Kong', 'HK', '🇭🇰', 'dest-bg-hongkong', 'DEL', '₹11,000'),
+        ('Kuala Lumpur', 'Malaysia', '🇲🇾', 'dest-bg-kuala', 'DEL', '₹10,500'),
+        ('Colombo', 'Sri Lanka', '🇱🇰', 'dest-bg-colombo', 'BOM', '₹7,500'),
+        ('Kathmandu', 'Nepal', '🇳🇵', 'dest-bg-kathmandu', 'DEL', '₹6,500'),
+      ] %}
+      {% for city, country, flag, bg, dep, price in destinations %}
+      <div class="dest-card" role="listitem" aria-label="{{ city }}, {{ country }}">
+        <div class="dest-bg {{ bg }}"></div>
+        <div class="dest-overlay"></div>
+        <div class="dest-flag" aria-hidden="true">{{ flag }}</div>
+        <div class="dest-info">
+          <div class="dest-city">{{ city }}</div>
+          <div class="dest-country">{{ country }}</div>
+          <div class="dest-price">from {{ price }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}

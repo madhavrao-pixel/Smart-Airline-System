@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% block title %}Book {{ flight.flight_number }} — Apex Voyage{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/booking.css') }}">{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-container">
+
+    <!-- Progress steps -->
+    <div class="progress-steps" role="list" aria-label="Booking steps">
+      <div class="ps-step active" id="ps1" role="listitem">
+        <div class="ps-num" aria-current="step">1</div>
+        <div class="ps-label">Passenger Info</div>
+      </div>
+      <div class="ps-connector" id="conn1"></div>
+      <div class="ps-step" id="ps2" role="listitem">
+        <div class="ps-num">2</div>
+        <div class="ps-label">Extras</div>
+      </div>
+      <div class="ps-connector" id="conn2"></div>
+      <div class="ps-step" id="ps3" role="listitem">
+        <div class="ps-num">3</div>
+        <div class="ps-label">Payment</div>
+      </div>
+    </div>
+
+    <div class="booking-wrap">
+      <!-- Form -->
+      <div class="booking-main">
+        <form method="POST" action="{{ url_for('booking') }}" id="bookingForm">
+          <input type="hidden" name="flight_id"   value="{{ flight.id }}">
+          <input type="hidden" name="seat_class"  value="{{ seat_class }}">
+          <input type="hidden" name="seat_number" value="{{ seat_number }}">
+
+          <div class="form-card">
+            <!-- Step 1: Passenger Info -->
+            <div class="form-step active" id="step1" role="tabpanel" aria-labelledby="ps1">
+              <div class="form-step-title">Passenger Information</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="title">Title</label>
+                  <select class="form-select" id="title" name="title" aria-label="Title" required>
+                    <option value="Mr">Mr</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Dr">Dr</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="nationality">Nationality</label>
+                  <select class="form-select" id="nationality" name="nationality" aria-label="Nationality">
+                    <option value="Indian">Indian</option>
+                    <option value="Singaporean">Singaporean</option>
+                    <option value="UAE National">UAE National</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="first_name">First Name *</label>
+                  <input type="text" class="form-input" id="first_name" name="first_name"
+                         placeholder="As on passport" required autocomplete="given-name"
+                         aria-required="true">
+                  <span class="form-error" id="err-first">Please enter your first name.</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="last_name">Last Name *</label>
+                  <input type="text" class="form-input" id="last_name" name="last_name"
+                         placeholder="As on passport" required autocomplete="family-name"
+                         aria-required="true">
+                  <span class="form-error" id="err-last">Please enter your last name.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="dob">Date of Birth *</label>
+                  <input type="date" class="form-input" id="dob" name="dob"
+                         required aria-required="true" aria-label="Date of birth">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="passport">Passport Number *</label>
+                  <input type="text" class="form-input" id="passport" name="passport"
+                         placeholder="e.g. A1234567" required
+                         autocomplete="off" aria-required="true">
+                  <span class="form-error" id="err-passport">Please enter your passport number.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="email">Email Address *</label>
+                  <input type="email" class="form-input" id="email" name="email"
+                         placeholder="your@email.com" required
+                         autocomplete="email" aria-required="true">
+                  <span class="form-error" id="err-email">Please enter a valid email.</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="phone">Phone Number *</label>
+                  <input type="tel" class="form-input" id="phone" name="phone"
+                         placeholder="+91 98765 43210" required
+                         autocomplete="tel" aria-required="true">
+                  <span class="form-error" id="err-phone">Please enter your phone number.</span>
+                </div>
+              </div>
+              <div class="step-nav">
+                <span></span>
+                <button type="button" class="btn-next" id="next1" aria-label="Continue to Extras">Continue →</button>
+              </div>
+            </div>
+
+            <!-- Step 2: Extras -->
+            <div class="form-step" id="step2" role="tabpanel" aria-labelledby="ps2">
+              <div class="form-step-title">Add Extras (Optional)</div>
+
+              <div class="extra-option" id="extra-meal" role="checkbox" aria-checked="false" tabindex="0" aria-label="Vegetarian meal add-on">
+                <div class="extra-info">
+                  <h4>🍱 Vegetarian Meal Preference</h4>
+                  <p>Pre-select your vegetarian meal from our chef's menu</p>
+                </div>
+                <div class="extra-price">Complimentary</div>
+                <div class="extra-check" aria-hidden="true"></div>
+              </div>
+
+              <div class="extra-option" id="extra-baggage" role="checkbox" aria-checked="false" tabindex="0" aria-label="Extra baggage 15kg">
+                <div class="extra-info">
+                  <h4>🧳 Extra Baggage +15 kg</h4>
+                  <p>Add additional checked baggage allowance</p>
+                </div>
+                <div class="extra-price">₹1,500</div>
+                <div class="extra-check" aria-hidden="true"></div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--grey-mid);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:0.75rem">
+                <div class="extra-info">
+                  <h4>🛡️ Travel Insurance</h4>
+                  <p>Covers cancellation, medical emergencies & delays</p>
+                </div>
+                <div class="extra-price" style="margin-right:1rem">₹299</div>
+                <div class="toggle-wrap">
+                  <div class="toggle" id="ins-toggle" role="switch" aria-checked="false" tabindex="0" aria-label="Travel insurance">
+                    <div class="toggle-knob"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step-nav">
+                <button type="button" class="btn-back" id="back2">← Back</button>
+                <button type="button" class="btn-next" id="next2">Continue to Payment →</button>
+              </div>
+            </div>
+
+            <!-- Step 3: Payment -->
+            <div class="form-step" id="step3" role="tabpanel" aria-labelledby="ps3">
+              <div class="form-step-title">Payment</div>
+
+              <div data-tabs>
+                <div class="payment-tabs" role="tablist">
+                  <button class="pay-tab active" data-tab="card"       role="tab" aria-selected="true">💳 Card</button>
+                  <button class="pay-tab"        data-tab="upi"        role="tab" aria-selected="false">📱 UPI</button>
+                  <button class="pay-tab"        data-tab="netbanking" role="tab" aria-selected="false">🏦 Net Banking</button>
+                </div>
+
+                <div data-panel="card" class="pay-panel active">
+                  <div class="card-input-wrap">
+                    <div class="card-chip">
+                      <span class="chip-icon">💳</span>
+                      <span style="font-size:0.8rem;color:var(--text-muted)">Credit / Debit Card</span>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.75rem">
+                      <label class="form-label" for="card-num">Card Number</label>
+                      <input type="text" class="form-input" id="card-num" placeholder="4242  4242  4242  4242" maxlength="19" inputmode="numeric" aria-label="Card number">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                      <div class="form-group">
+                        <label class="form-label" for="card-exp">Expiry</label>
+                        <input type="text" class="form-input" id="card-exp" placeholder="MM / YY" maxlength="7" aria-label="Card expiry">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="card-cvv">CVV</label>
+                        <input type="text" class="form-input" id="card-cvv" placeholder="•••" maxlength="4" inputmode="numeric" aria-label="Card CVV">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div data-panel="upi" class="pay-panel">
+                  <div class="form-group" style="margin-bottom:1rem">
+                    <label class="form-label" for="upi-id">UPI ID</label>
+                    <input type="text" class="form-input" id="upi-id" placeholder="yourname@upi" aria-label="UPI ID">
+                  </div>
+                </div>
+
+                <div data-panel="netbanking" class="pay-panel">
+                  <div class="form-group" style="margin-bottom:1rem">
+                    <label class="form-label" for="bank-sel">Select Bank</label>
+                    <select class="form-select" id="bank-sel" aria-label="Select bank">
+                      <option>SBI</option><option>HDFC</option><option>ICICI</option>
+                      <option>Axis</option><option>Kotak</option><option>PNB</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" class="pay-btn" id="pay-now-btn" aria-label="Complete payment and book">
+                Pay ₹{{ (flight.price_for_class(seat_class) * 1.05 + 450)|int|string }} & Confirm Booking
+              </button>
+              <p class="pay-secure">🔒 256-bit SSL encrypted · PCI DSS compliant · Your data is safe</p>
+
+              <div class="step-nav" style="margin-top:1.5rem">
+                <button type="button" class="btn-back" id="back3">← Back</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Summary sidebar -->
+      <div class="booking-sidebar">
+        <div class="summary-card">
+          <div class="summary-card__head">
+            <h4>✈ Trip Summary</h4>
+          </div>
+          <div class="summary-body">
+            <div class="sum-row">
+              <span class="sum-label">Flight</span>
+              <span class="sum-val">{{ flight.flight_number }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-label">Route</span>
+              <span class="sum-val">{{ flight.origin_code }} → {{ flight.destination_code }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-label">Date</span>
+              <span class="sum-val">{{ flight.date.strftime('%d %b %Y') }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-label">Departure</span>
+              <span class="sum-val">{{ flight.departure_time }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-label">Class</span>
+              <span class="sum-val">{{ seat_class }}</span>
+            </div>
+            {% if seat_number %}
+            <div class="sum-row">
+              <span class="sum-label">Seat</span>
+              <span class="sum-val" style="color:var(--gold);font-weight:700">{{ seat_number }}</span>
+            </div>
+            {% endif %}
+            <div class="sum-row">
+              <span class="sum-label">Aircraft</span>
+              <span class="sum-val">{{ flight.aircraft_type }}</span>
+            </div>
+            <div class="sum-total-row">
+              <span class="sum-total-label">Total</span>
+              <span class="sum-total-val">₹{{ (flight.price_for_class(seat_class) * 1.05 + 450)|int }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment processing overlay -->
+<div class="pay-processing" id="pay-processing" role="dialog" aria-modal="true" aria-label="Processing payment">
+  <div class="pay-spinner" aria-hidden="true"></div>
+  <p>Processing your payment securely…</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Multi-step form navigation
+const steps     = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+const stepBtns  = [document.getElementById('ps1'), document.getElementById('ps2'), document.getElementById('ps3')];
+const connectors = [document.getElementById('conn1'), document.getElementById('conn2')];
+let currentStep = 0;
+
+function goStep(n) {
+  steps.forEach((s, i) => {
+    s.classList.toggle('active', i === n);
+    stepBtns[i].classList.toggle('active', i === n);
+    stepBtns[i].classList.toggle('done', i < n);
+    stepBtns[i].querySelector('.ps-num').setAttribute('aria-current', i === n ? 'step' : 'false');
+  });
+  connectors.forEach((c, i) => c.classList.toggle('done', i < n));
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep1() {
+  let ok = true;
+  ['first_name','last_name','passport','email','phone'].forEach(id => {
+    const el = document.getElementById(id);
+    const err = document.getElementById('err-' + id.replace('_name','').replace('_',''));
+    if (el && !el.value.trim()) {
+      el.classList.add('error');
+      if (err) err.classList.add('show');
+      ok = false;
+    } else if (el) {
+      el.classList.remove('error');
+      if (err) err.classList.remove('show');
+    }
+  });
+  return ok;
+}
+
+document.getElementById('next1')?.addEventListener('click', () => { if (validateStep1()) goStep(1); });
+document.getElementById('next2')?.addEventListener('click', () => goStep(2));
+document.getElementById('back2')?.addEventListener('click', () => goStep(0));
+document.getElementById('back3')?.addEventListener('click', () => goStep(1));
+
+// Payment
+document.getElementById('pay-now-btn')?.addEventListener('click', () => {
+  const overlay = document.getElementById('pay-processing');
+  overlay.classList.add('show');
+  setTimeout(() => { document.getElementById('bookingForm').submit(); }, 2000);
+});
+
+// Card number formatting
+document.getElementById('card-num')?.addEventListener('input', (e) => {
+  let v = e.target.value.replace(/\D/g,'').substring(0,16);
+  e.target.value = v.replace(/(.{4})/g,'$1  ').trim();
+});
+
+// Expiry formatting
+document.getElementById('card-exp')?.addEventListener('input', (e) => {
+  let v = e.target.value.replace(/\D/g,'');
+  if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2,4);
+  e.target.value = v;
+});
+
+// Extra options toggle
+document.querySelectorAll('.extra-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    opt.classList.toggle('selected');
+    opt.setAttribute('aria-checked', opt.classList.contains('selected'));
+  });
+  opt.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opt.click(); }
+  });
+});
+
+// Insurance toggle
+const toggle = document.getElementById('ins-toggle');
+toggle?.addEventListener('click', () => {
+  toggle.classList.toggle('on');
+  toggle.setAttribute('aria-checked', toggle.classList.contains('on'));
+});
+toggle?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle.click(); }
+});
+
+// Payment tabs
+document.querySelectorAll('.pay-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.pay-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+    document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected','true');
+    document.querySelector(`[data-panel="${tab.dataset.tab}"]`)?.classList.add('active');
+  });
+});
+</script>
+{% endblock %}

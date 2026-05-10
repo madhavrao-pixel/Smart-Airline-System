@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Apex Voyage — Premium airline booking. Where India Meets Asia.">
+  <title>{% block title %}Apex Voyage — Where India Meets Asia{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<!-- ── Navbar ── -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a class="navbar__logo" href="{{ url_for('index') }}" aria-label="Apex Voyage home">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage" class="logo-white">
+  </a>
+
+  <div class="navbar__nav">
+    <a href="{{ url_for('index') }}"    class="nav-link" aria-label="Search flights">Search</a>
+    <a href="{{ url_for('my_trips') }}" class="nav-link" aria-label="My trips">My Trips</a>
+    <a href="{{ url_for('check_in') }}" class="nav-link" aria-label="Online check-in">Check-In</a>
+    <a href="{{ url_for('admin') }}"    class="nav-link" aria-label="Admin portal">Admin</a>
+  </div>
+
+  <div class="navbar__right">
+    <div class="currency-wrap" aria-label="Currency selector">
+      <span>🌐</span>
+      <select id="currency-sel" aria-label="Select currency">
+        <option value="INR">₹ INR</option>
+        <option value="USD">$ USD</option>
+        <option value="SGD">S$ SGD</option>
+        <option value="AED">AED</option>
+      </select>
+    </div>
+    <a href="{{ url_for('index') }}" class="nav-link nav-link--cta">Book Now</a>
+  </div>
+</nav>
+
+<!-- Flash messages as toasts -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <span data-toast="{{ msg }}" data-toast-type="{{ cat }}" hidden></span>
+  {% endfor %}
+{% endwith %}
+
+<!-- ── Main content ── -->
+<main id="main">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── Footer ── -->
+{% block footer %}
+<footer class="footer" role="contentinfo">
+  <div class="footer__grid">
+    <div>
+      <div class="footer__logo">
+        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage">
+      </div>
+      <p class="footer__about">Premium flights connecting India to the heart of Asia. Unmatched service, unbeatable prices.</p>
+    </div>
+    <div class="footer__col">
+      <h4>Fly</h4>
+      <ul>
+        <li><a href="{{ url_for('index') }}">Search Flights</a></li>
+        <li><a href="{{ url_for('my_trips') }}">My Trips</a></li>
+        <li><a href="{{ url_for('check_in') }}">Online Check-In</a></li>
+      </ul>
+    </div>
+    <div class="footer__col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Press</a></li>
+        <li><a href="#">Sustainability</a></li>
+      </ul>
+    </div>
+    <div class="footer__col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="#">Help Centre</a></li>
+        <li><a href="#">Contact Us</a></li>
+        <li><a href="#">Refund Policy</a></li>
+        <li><a href="#">Baggage Info</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <p class="footer__copy">© 2026 Apex Voyage Pvt. Ltd. All rights reserved.</p>
+    <div class="trust-badges">
+      <span class="trust-badge">✈ DGCA Certified</span>
+      <span class="trust-badge">🔒 PCI DSS Secure</span>
+      <span class="trust-badge">⭐ ISO 9001</span>
+    </div>
+  </div>
+</footer>
+{% endblock %}
+
+<!-- Toast container -->
+<div class="toast-zone" aria-live="polite" aria-label="Notifications"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Online Check-In — Apex Voyage{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/booking.css') }}">{% endblock %}
+
+{% block content %}
+<div class="page-wrap" style="background:var(--navy);min-height:100vh">
+  <div style="background:var(--navy);padding:3rem 1.5rem 2rem;text-align:center">
+    <div style="font-size:3rem;margin-bottom:0.75rem" aria-hidden="true">✈</div>
+    <h1 style="color:white;font-size:clamp(1.5rem,4vw,2.25rem);font-weight:700;margin-bottom:0.375rem">Online Check-In</h1>
+    <p style="color:rgba(255,255,255,0.55)">Check in up to 48 hours before departure</p>
+  </div>
+
+  <div style="padding:0 1.5rem 5rem">
+    <!-- Lookup form -->
+    <div class="lookup-card">
+      <h2>Enter Your Details</h2>
+      <p>Enter your PNR and last name to proceed with online check-in.</p>
+      <form method="POST" action="{{ url_for('check_in') }}" novalidate>
+        <input type="hidden" name="action" value="lookup">
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="form-label" for="pnr">PNR / Booking Reference</label>
+          <input type="text" class="form-input" id="pnr" name="pnr"
+                 placeholder="e.g. AV1234" required maxlength="10"
+                 style="text-transform:uppercase;letter-spacing:2px"
+                 aria-label="Booking PNR" autocomplete="off">
+        </div>
+        <div class="form-group" style="margin-bottom:1.5rem">
+          <label class="form-label" for="last_name">Last Name</label>
+          <input type="text" class="form-input" id="last_name" name="last_name"
+                 placeholder="As on booking" required
+                 aria-label="Last name" autocomplete="family-name">
+        </div>
+        <button type="submit" class="lookup-btn" aria-label="Find booking for check-in">Continue</button>
+      </form>
+      {% if error %}
+      <div class="lookup-error" role="alert">⚠ {{ error }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Check-in result / boarding pass -->
+    {% if booking %}
+    {% if booking.check_in_status == 'cancelled' %}
+      <div style="text-align:center;padding:2rem;background:white;border-radius:var(--radius-xl);max-width:520px;margin:0 auto">
+        <div style="color:#ef4444;font-size:1.5rem;margin-bottom:0.75rem">✗</div>
+        <h3 style="color:var(--navy);margin-bottom:0.5rem">Booking Cancelled</h3>
+        <p style="color:var(--text-muted)">This booking has been cancelled and cannot be checked in.</p>
+      </div>
+    {% elif booking.check_in_status == 'checked_in' or boarded %}
+      <!-- Boarding pass view -->
+      <div class="boarding-pass" style="max-width:680px;margin:0 auto" role="region" aria-label="Boarding pass">
+        <div class="bp-top">
+          <div class="bp-airline">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Apex Voyage" style="height:28px">
+            <div class="bp-flight">BOARDING PASS · {{ booking.flight.flight_number }}</div>
+          </div>
+          <div class="bp-pnr-wrap">
+            <div class="bp-pnr-label">PNR</div>
+            <div class="bp-pnr">{{ booking.pnr }}</div>
+          </div>
+        </div>
+        <div class="bp-route">
+          <div class="bp-city-block">
+            <div class="bp-iata">{{ booking.flight.origin_code }}</div>
+            <div class="bp-city-name">{{ booking.flight.origin_city }}</div>
+            <div class="bp-time">{{ booking.flight.departure_time }}</div>
+          </div>
+          <div class="bp-center">
+            <div class="bp-dur">{{ booking.flight.duration() }}</div>
+            <div class="bp-plane-path">
+              <div class="bp-path-line"></div>
+              <span class="bp-plane-ic" aria-hidden="true">✈</span>
+              <div class="bp-path-line"></div>
+            </div>
+          </div>
+          <div class="bp-city-block">
+            <div class="bp-iata">{{ booking.flight.destination_code }}</div>
+            <div class="bp-city-name">{{ booking.flight.destination_city }}</div>
+            <div class="bp-time">{{ booking.flight.arrival_time }}</div>
+          </div>
+        </div>
+        <div class="bp-details">
+          <div class="bp-field"><label>Passenger</label><span>{{ booking.passenger_name }}</span></div>
+          <div class="bp-field"><label>Date</label><span>{{ booking.flight.date.strftime('%d %b %Y') }}</span></div>
+          <div class="bp-field"><label>Seat</label><span class="bp-seat-large">{{ booking.seat_number or 'TBA' }}</span></div>
+          <div class="bp-field"><label>Class</label><span>{{ booking.seat_class }}</span></div>
+          <div class="bp-field"><label>Status</label><span style="color:#10b981;font-weight:700">✓ Checked In</span></div>
+        </div>
+        <div class="bp-bottom">
+          <div class="qr-box" aria-label="Gate QR code">
+            <div class="qr-grid" aria-hidden="true">
+              {% set qr_pattern = [1,1,1,0,1,1,1, 1,0,1,0,1,0,1, 1,0,1,1,0,1,1, 0,1,0,1,0,1,0, 1,1,0,1,0,0,1, 1,0,1,0,1,0,1, 1,1,1,0,0,1,1] %}
+              {% for cell in qr_pattern %}<div class="qr-cell {{ 'b' if cell else '' }}"></div>{% endfor %}
+            </div>
+            <div class="qr-note">Scan at gate</div>
+          </div>
+          <div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.875rem">Please arrive at the gate at least 45 minutes before departure.</div>
+            <div class="bp-actions">
+              <button onclick="window.print()" class="bp-btn bp-btn--primary" aria-label="Print boarding pass">🖨 Print</button>
+              <button onclick="window.print()" class="bp-btn bp-btn--outline" aria-label="Save boarding pass">⬇ Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% if boarded %}
+      <div style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:rgba(255,255,255,0.6)">
+        ✓ Check-in completed. Have a wonderful flight!
+      </div>
+      {% endif %}
+
+    {% else %}
+      <!-- Confirm check-in -->
+      <div class="trip-card" style="max-width:520px;margin:0 auto" role="region" aria-label="Check-in confirmation">
+        <div class="trip-card__head">
+          <div>
+            <div style="font-size:0.7rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.25rem">Flight</div>
+            <div class="tc-pnr">{{ booking.flight.flight_number }}</div>
+          </div>
+          <span class="badge-green" role="status">✓ Booking Confirmed</span>
+        </div>
+        <div class="trip-card__body">
+          <div class="tc-route" style="margin-bottom:1rem">
+            <div><div class="tc-t">{{ booking.flight.departure_time }}</div><div class="tc-c">{{ booking.flight.origin_city }}</div></div>
+            <div class="tc-mid"><div class="tc-dur">{{ booking.flight.duration() }}</div><div class="tc-line"></div></div>
+            <div><div class="tc-t">{{ booking.flight.arrival_time }}</div><div class="tc-c">{{ booking.flight.destination_city }}</div></div>
+          </div>
+          <div class="tc-grid" style="margin-bottom:1.5rem">
+            <div class="tc-field"><label>Passenger</label><span>{{ booking.passenger_name }}</span></div>
+            <div class="tc-field"><label>Date</label><span>{{ booking.flight.date.strftime('%d %b %Y') }}</span></div>
+            <div class="tc-field"><label>PNR</label><span style="color:var(--gold);font-weight:700">{{ booking.pnr }}</span></div>
+            <div class="tc-field"><label>Seat</label><span style="color:var(--gold);font-weight:700">{{ booking.seat_number or 'TBA' }}</span></div>
+          </div>
+          <form method="POST" action="{{ url_for('check_in') }}">
+            <input type="hidden" name="pnr"       value="{{ booking.pnr }}">
+            <input type="hidden" name="last_name" value="{{ booking.passenger_name.split()[-1] }}">
+            <input type="hidden" name="action"    value="checkin">
+            <button type="submit" class="lookup-btn" aria-label="Confirm check-in">
+              ✈ Confirm Check-In
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

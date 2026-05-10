@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}{{ origin }} → {{ destination }} — Apex Voyage{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">{% endblock %}
+
+{% block content %}
+<div class="search-page">
+
+  <!-- Route bar -->
+  <div class="route-bar" role="banner">
+    <div>
+      <div class="route-bar__title">
+        <span>{{ airports.get(origin, origin) }}</span>
+        <span style="color:rgba(255,255,255,0.5);margin:0 0.5rem">→</span>
+        <span>{{ airports.get(destination, destination) }}</span>
+      </div>
+      <div class="route-bar__meta">
+        {{ travel_date }} &bull; {{ passengers }} passenger{{ 's' if passengers != 1 else '' }} &bull; {{ seat_class }}
+        &bull; <strong style="color:var(--gold)">{{ flights|length }} flight{{ 's' if flights|length != 1 else '' }}</strong>
+      </div>
+    </div>
+    <a href="{{ url_for('index') }}" class="route-bar__modify">✎ Modify Search</a>
+  </div>
+
+  <!-- Price calendar -->
+  {% if price_calendar %}
+  <div class="price-calendar" role="navigation" aria-label="Price calendar">
+    {% for day in price_calendar %}
+    <a class="cal-day {% if day.selected %}selected{% endif %}"
+       href="{{ url_for('search', origin=origin, destination=destination, date=day.date.isoformat(), class=seat_class, passengers=passengers) }}"
+       aria-label="{{ day.date.strftime('%d %b') }}, {% if day.price %}₹{{ day.price|int }}{% else %}no flights{% endif %}"
+       aria-current="{{ 'date' if day.selected else 'false' }}">
+      <span class="cal-date">{{ day.date.strftime('%d %b') }}</span>
+      {% if day.price %}
+        <span class="cal-price {% if loop.first or (loop.index > 1 and price_calendar[loop.index-2].price and day.price and day.price < price_calendar[loop.index-2].price) %}best{% endif %}">
+          ₹{{ day.price|int|string }}
+        </span>
+      {% else %}
+        <span class="cal-na">—</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Layout -->
+  <div class="results-layout">
+
+    <!-- Sidebar filters -->
+    <aside class="filters-sidebar" aria-label="Flight filters">
+      <div class="filter-card">
+        <div class="filter-header">
+          <h3>Filters</h3>
+          <button class="filter-clear" id="filter-clear-btn" aria-label="Clear all filters">Clear All</button>
+        </div>
+
+        <!-- Departure time -->
+        <div class="filter-section">
+          <div class="filter-section-title">Departure Time</div>
+          <div class="time-chips" role="group" aria-label="Departure time slots">
+            <button class="time-chip" data-slot="night"     aria-pressed="false">🌙 Night (00–06)</button>
+            <button class="time-chip" data-slot="morning"   aria-pressed="false">🌅 Morning (06–12)</button>
+            <button class="time-chip" data-slot="afternoon" aria-pressed="false">☀️ Afternoon (12–18)</button>
+            <button class="time-chip" data-slot="evening"   aria-pressed="false">🌆 Evening (18–24)</button>
+          </div>
+        </div>
+
+        <!-- Aircraft type -->
+        {% set aircraft_types = flights|map(attribute='aircraft_type')|unique|list %}
+        {% if aircraft_types %}
+        <div class="filter-section">
+          <div class="filter-section-title">Aircraft</div>
+          {% for ac in aircraft_types %}
+          <label class="filter-option">
+            <input type="checkbox" data-filter="aircraft" value="{{ ac }}" aria-label="{{ ac }}">
+            <label>{{ ac }}</label>
+          </label>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Price range -->
+        <div class="filter-section">
+          <div class="filter-section-title">Max Price</div>
+          {% set prices = flights|map(attribute='economy_price')|list %}
+          {% set max_p = prices|max if prices else 20000 %}
+          <div class="price-range">
+            <input type="range" id="price-slider" class="price-slider"
+                   min="0" max="{{ max_p|int + 2000 }}" value="{{ max_p|int + 2000 }}"
+                   aria-label="Maximum price filter" aria-valuemin="0"
+                   aria-valuemax="{{ max_p|int + 2000 }}">
+            <div class="price-range-labels">
+              <span>₹0</span>
+              <span>Up to <strong id="price-val">₹{{ (max_p|int + 2000)|string }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Results -->
+    <div>
+      <!-- Sort bar -->
+      <div class="sort-bar" role="toolbar" aria-label="Sort options">
+        <span class="sort-label">Sort by:</span>
+        <button class="sort-btn active" data-sort="best"     aria-pressed="true">⭐ Best</button>
+        <button class="sort-btn"        data-sort="cheapest" aria-pressed="false">💰 Cheapest</button>
+        <button class="sort-btn"        data-sort="fastest"  aria-pressed="false">⚡ Fastest</button>
+        <span class="results-count">{{ flights|length }} flight{{ 's' if flights|length != 1 else '' }} found</span>
+      </div>
+
+      <!-- Skeleton loaders (shown briefly) -->
+      {% for _ in range(3) %}
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skel skel-line w-40"></div>
+        <div class="skel skel-line w-80" style="margin-top:1rem"></div>
+        <div class="skel skel-line w-60"></div>
+      </div>
+      {% endfor %}
+
+      <!-- Flight cards -->
+      <div id="results-list" role="list" aria-label="Search results">
+        {% if flights %}
+          {% for flight in flights %}
+          <article class="flight-card"
+                   data-price="{{ flight.economy_price }}"
+                   data-duration="{{ flight.duration_mins() }}"
+                   data-aircraft="{{ flight.aircraft_type }}"
+                   data-dep="{{ flight.departure_time }}"
+                   role="listitem"
+                   aria-label="{{ flight.flight_number }} {{ flight.origin_city }} to {{ flight.destination_city }}">
+
+            <div class="flight-card__top">
+              <!-- Airline -->
+              <div class="fc-airline">
+                <div class="fc-airline-name">Apex Voyage</div>
+                <div class="fc-flight-num">{{ flight.flight_number }}</div>
+                <div class="fc-aircraft">✈ {{ flight.aircraft_type }}</div>
+              </div>
+
+              <!-- Route timeline -->
+              <div class="fc-route">
+                <div class="text-block">
+                  <div class="fc-time">{{ flight.departure_time }}</div>
+                  <div class="fc-city">{{ flight.origin_code }} · {{ flight.origin_city }}</div>
+                </div>
+                <div class="fc-line-wrap">
+                  <div class="fc-duration">{{ flight.duration() }}</div>
+                  <div class="fc-line">
+                    <div class="fc-line-seg"></div>
+                    <span class="fc-plane-ico" aria-hidden="true">✈</span>
+                    <div class="fc-line-seg"></div>
+                  </div>
+                  <div class="fc-stops">Non-stop</div>
+                </div>
+                <div class="text-block">
+                  <div class="fc-time">{{ flight.arrival_time }}</div>
+                  <div class="fc-city">{{ flight.destination_code }} · {{ flight.destination_city }}</div>
+                </div>
+              </div>
+
+              <!-- Prices -->
+              <div class="fc-prices">
+                <a href="{{ url_for('flight_detail', flight_id=flight.id, **{'class':'Economy','passengers':passengers}) }}"
+                   class="price-pill {% if seat_class == 'Economy' %}selected{% endif %}"
+                   aria-label="Economy class, ₹{{ flight.economy_price|int }}">
+                  <span>
+                    <div class="pp-class">Economy</div>
+                    <div class="pp-price" data-price-inr="{{ flight.economy_price }}">₹{{ flight.economy_price|int }}</div>
+                    <div class="pp-seats">{{ flight.economy_seats }} seats left</div>
+                  </span>
+                  <span class="pp-select-btn">Select</span>
+                </a>
+                <a href="{{ url_for('flight_detail', flight_id=flight.id, **{'class':'Business','passengers':passengers}) }}"
+                   class="price-pill {% if seat_class == 'Business' %}selected{% endif %}"
+                   aria-label="Business class, ₹{{ flight.business_price|int }}">
+                  <span>
+                    <div class="pp-class">Business</div>
+                    <div class="pp-price" data-price-inr="{{ flight.business_price }}">₹{{ flight.business_price|int }}</div>
+                    <div class="pp-seats">{{ flight.business_seats }} seats left</div>
+                  </span>
+                  <span class="pp-select-btn">Select</span>
+                </a>
+                <a href="{{ url_for('flight_detail', flight_id=flight.id, **{'class':'First','passengers':passengers}) }}"
+                   class="price-pill {% if seat_class == 'First' %}selected{% endif %}"
+                   aria-label="First class, ₹{{ flight.first_price|int }}">
+                  <span>
+                    <div class="pp-class">First</div>
+                    <div class="pp-price" data-price-inr="{{ flight.first_price }}">₹{{ flight.first_price|int }}</div>
+                    <div class="pp-seats">{{ flight.first_seats }} seats left</div>
+                  </span>
+                  <span class="pp-select-btn">Select</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Smart badges -->
+            <div class="flight-card__badges">
+              {% set seats = flight.seats_for_class(seat_class) %}
+              {% if seats < 10 %}
+                <span class="smart-badge sb-rising" role="status">🔥 Price rising — only {{ seats }} seats left</span>
+              {% elif seats < 15 %}
+                <span class="smart-badge sb-rising" role="status">📈 Price likely to increase in 2 days</span>
+              {% else %}
+                <span class="smart-badge sb-best" role="status">✓ Best time to book</span>
+              {% endif %}
+              <span class="smart-badge sb-miles" aria-label="Earn Apex Miles">
+                ⭐ Earn {{ flight.apex_miles(seat_class) }} Apex Miles
+              </span>
+            </div>
+          </article>
+          {% endfor %}
+        {% else %}
+          <div class="no-results" role="alert">
+            <div class="no-results__icon" aria-hidden="true">✈</div>
+            <h3>No flights found</h3>
+            <p>No flights from <strong>{{ airports.get(origin, origin) }}</strong> to <strong>{{ airports.get(destination, destination) }}</strong> on {{ travel_date }}.</p>
+            <a href="{{ url_for('index') }}" class="search-cta" style="display:inline-block;text-decoration:none">Try Different Dates</a>
+          </div>
+        {% endif %}
+      </div>
+    </div><!-- /results -->
+  </div><!-- /layout -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

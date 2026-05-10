@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" width="280" height="64" role="img" aria-label="Apex Voyage Logo">
+  <defs>
+    <linearGradient id="wingGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#C9A84C"/>
+    </linearGradient>
+    <linearGradient id="wingGrad2" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#C9A84C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left swept wing -->
+  <path d="M4,56 L36,8 L46,24 L20,56 Z" fill="url(#wingGrad)"/>
+  <!-- Right swept wing -->
+  <path d="M72,56 L36,8 L26,24 L52,56 Z" fill="url(#wingGrad2)" opacity="0.88"/>
+  <!-- A crossbar -->
+  <path d="M19,40 L53,40 L48,48 L24,48 Z" fill="url(#wingGrad)" opacity="0.72"/>
+  <!-- Apex dot at peak -->
+  <circle cx="36" cy="7" r="3" fill="#C9A84C"/>
+
+  <!-- APEX text -->
+  <text x="86" y="30"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="19" font-weight="700"
+    letter-spacing="5"
+    fill="#0A1628">APEX</text>
+
+  <!-- VOYAGE text -->
+  <text x="86" y="53"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="19" font-weight="700"
+    letter-spacing="5"
+    fill="#0A1628">VOYAGE</text>
+
+  <!-- Gold underline beneath VOYAGE -->
+  <rect x="86" y="58" width="148" height="2.5" fill="#C9A84C" rx="1.25"/>
+</svg>

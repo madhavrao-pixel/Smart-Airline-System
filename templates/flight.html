@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% block title %}{{ flight.flight_number }} — Select Seat — Apex Voyage{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/booking.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-container">
+
+    <!-- Flight header -->
+    <div class="flight-header">
+      <div class="flight-header__row">
+        <span class="fh-badge">{{ flight.flight_number }} · {{ flight.aircraft_type }}</span>
+        <div class="fh-route">
+          <div>
+            <div class="fh-time">{{ flight.departure_time }}</div>
+            <div class="fh-city">{{ flight.origin_code }} · {{ flight.origin_city }}</div>
+          </div>
+          <div class="fh-mid">
+            <div class="fh-dur">{{ flight.duration() }}</div>
+            <div class="fh-line"><span class="fh-plane" aria-hidden="true">✈</span></div>
+          </div>
+          <div>
+            <div class="fh-time">{{ flight.arrival_time }}</div>
+            <div class="fh-city">{{ flight.destination_code }} · {{ flight.destination_city }}</div>
+          </div>
+        </div>
+        <div class="fh-price">
+          <div class="fh-price-amt" id="fare-total">₹{{ flight.price_for_class(seat_class)|int }}</div>
+          <div class="fh-price-cls">per person · <span id="fare-class">{{ seat_class }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start">
+      <div>
+        <!-- Class tabs -->
+        <div class="class-tabs" role="tablist" aria-label="Seat class selection">
+          {% for cls, label in [('Economy','Economy'), ('Business','Business'), ('First','First Class')] %}
+          <button class="class-tab {% if seat_class == cls %}active{% endif %}"
+                  data-class="{{ cls }}" role="tab"
+                  aria-selected="{{ 'true' if seat_class == cls else 'false' }}"
+                  aria-label="{{ label }} class">
+            <div class="ct-name">{{ label }}</div>
+            <div class="ct-price" data-price-inr="{{ flight.price_for_class(cls) }}">₹{{ flight.price_for_class(cls)|int }}</div>
+            <div class="ct-seats">{{ flight.seats_for_class(cls) }} seats available</div>
+            <div class="ct-miles">⭐ {{ flight.apex_miles(cls) }} Apex Miles</div>
+          </button>
+          {% endfor %}
+        </div>
+
+        <!-- AI Recommender banner -->
+        <div class="ai-banner" role="note" aria-label="AI seat recommendation">
+          <span class="ai-icon" aria-hidden="true">🤖</span>
+          <div class="ai-text">
+            Best seat for you: <strong id="ai-seat-val">{{ rec_seat }}</strong>
+            (window, {% if seat_class == 'First' %}premium suite{% elif seat_class == 'Business' %}lie-flat bed{% else %}extra legroom{% endif %},
+            <span id="ai-score-val">{{ rec_score }}%</span> satisfaction)
+          </div>
+          <div class="ai-score">
+            <div class="ai-score-num">{{ rec_score }}%</div>
+            <div class="ai-score-lbl">match</div>
+          </div>
+        </div>
+
+        <!-- Dynamic pricing badge -->
+        {% set seats_left = flight.seats_for_class(seat_class) %}
+        {% if seats_left < 10 %}
+        <div style="margin-bottom:1rem">
+          <span class="dynamic-badge db-rising" role="alert">🔥 Price rising — only {{ seats_left }} seats left</span>
+        </div>
+        {% else %}
+        <div style="margin-bottom:1rem">
+          <span class="dynamic-badge db-good" role="status">✓ Good time to book — {{ seats_left }} seats available</span>
+        </div>
+        {% endif %}
+
+        <!-- Seat Map -->
+        <div class="seat-map-card" role="region" aria-label="Seat map">
+          <div class="seat-map-title">Select Your Seat</div>
+          <div class="seat-legend" role="legend">
+            <div class="legend-item"><div class="legend-dot ld-available"></div> Available</div>
+            <div class="legend-item"><div class="legend-dot ld-selected"></div> Selected</div>
+            <div class="legend-item"><div class="legend-dot ld-occupied"></div> Occupied</div>
+            <div class="legend-item"><div class="legend-dot ld-window"></div> Window</div>
+          </div>
+          <span class="plane-nose" aria-hidden="true">✈</span>
+          <div class="seat-cabin-label">{{ seat_class }} Cabin</div>
+          <div class="seat-grid" id="seat-grid" role="grid" aria-label="Seat selection grid"></div>
+
+          <div class="seat-selected-info" role="status" aria-live="polite">
+            <span class="ssi-seat" aria-label="Selected seat"></span>
+            <span class="ssi-desc"></span>
+          </div>
+        </div>
+
+        <!-- Amenities -->
+        <div class="amenities" role="list" aria-label="Flight amenities">
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="Meal service">🍽️</span>
+            <span class="amenity-name">Meal</span>
+          </div>
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="WiFi available">📶</span>
+            <span class="amenity-name">Wi-Fi</span>
+          </div>
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="Entertainment system">🎬</span>
+            <span class="amenity-name">IFE</span>
+          </div>
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="USB charging port">🔌</span>
+            <span class="amenity-name">Charging</span>
+          </div>
+          {% if seat_class != 'Economy' %}
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="Lounge access">🛋️</span>
+            <span class="amenity-name">Lounge</span>
+          </div>
+          {% endif %}
+          {% if seat_class == 'First' %}
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="Private suite">🛏️</span>
+            <span class="amenity-name">Private Suite</span>
+          </div>
+          {% endif %}
+          <div class="amenity" role="listitem">
+            <span class="amenity-icon" aria-label="Baggage allowance">🧳</span>
+            <span class="amenity-name">
+              {% if seat_class == 'Economy' %}15kg{% elif seat_class == 'Business' %}35kg{% else %}50kg{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fare breakdown sidebar -->
+      <div class="fare-card" role="complementary" aria-label="Fare breakdown">
+        <div class="fare-title">Fare Breakdown</div>
+        <div class="fare-row">
+          <span class="fare-row__label">Base fare</span>
+          <span class="fare-row__val" id="fare-base">₹{{ flight.price_for_class(seat_class)|int }}</span>
+        </div>
+        <div class="fare-row">
+          <span class="fare-row__label">GST (5%)</span>
+          <span class="fare-row__val" id="fare-gst">₹{{ (flight.price_for_class(seat_class) * 0.05)|int }}</span>
+        </div>
+        <div class="fare-row">
+          <span class="fare-row__label">Airport charges</span>
+          <span class="fare-row__val" id="fare-fees">₹450</span>
+        </div>
+        <div class="fare-total">
+          <span class="fare-total__label">Total</span>
+          <span class="fare-total__val" id="fare-total-val">₹{{ (flight.price_for_class(seat_class) * 1.05 + 450)|int }}</span>
+        </div>
+        <div class="baggage-note">
+          🧳 Included baggage:
+          {% if seat_class == 'Economy' %}15 kg check-in + 7 kg cabin
+          {% elif seat_class == 'Business' %}35 kg check-in + 10 kg cabin
+          {% else %}50 kg check-in + 15 kg cabin{% endif %}
+        </div>
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--grey-light);font-size:0.8rem;color:var(--text-muted)">
+          ⭐ You'll earn <strong style="color:var(--gold)" id="fare-miles">{{ flight.apex_miles(seat_class) }}</strong> Apex Miles
+        </div>
+        <a id="continue-link"
+           href="{{ url_for('booking', flight_id=flight.id, **{'class': seat_class, 'passengers': passengers}) }}"
+           class="continue-btn" aria-label="Continue to passenger details">
+          Continue to Booking →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden inputs for JS -->
+<input type="hidden" id="seat-class-input" value="{{ seat_class }}">
+<input type="hidden" id="seat-hidden" value="">
+<input type="hidden" id="rec-seat" value="{{ rec_seat }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const BOOKED_SEATS  = {{ booked_seats | tojson }};
+  const FLIGHT_PRICES = {
+    Economy:  {{ flight.economy_price }},
+    Business: {{ flight.business_price }},
+    First:    {{ flight.first_price }}
+  };
+  const FLIGHT_ID = {{ flight.id }};
+  const PASSENGERS = {{ passengers }};
+</script>
+<script src="{{ url_for('static', filename='js/seat-map.js') }}"></script>
+<script>
+// Update continue link when seat + class changes
+document.querySelectorAll('.class-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const cls  = tab.dataset.class;
+    const seat = document.getElementById('seat-hidden').value;
+    const link = document.getElementById('continue-link');
+    const base = `/booking?flight_id=${FLIGHT_ID}&class=${cls}&passengers=${PASSENGERS}`;
+    link.href  = seat ? base + `&seat=${seat}` : base;
+    // Update fare total
+    const prices = FLIGHT_PRICES;
+    const p = prices[cls] || 0;
+    const total = Math.round(p * 1.05 + 450);
+    const el = document.getElementById('fare-total-val');
+    if (el) el.textContent = '₹' + total.toLocaleString('en-IN');
+  });
+});
+document.getElementById('seat-grid').addEventListener('click', () => {
+  const seat = document.getElementById('seat-hidden').value;
+  const cls  = document.getElementById('seat-class-input').value;
+  if (seat) {
+    const link = document.getElementById('continue-link');
+    link.href = `/booking?flight_id=${FLIGHT_ID}&class=${cls}&passengers=${PASSENGERS}&seat=${seat}`;
+  }
+});
+</script>
+{% endblock %}
